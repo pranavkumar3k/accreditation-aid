@@ -189,8 +189,15 @@ function StatCard({
   icon: typeof Users;
   tone: "blue" | "green" | "gold" | "violet";
 }) {
+  const toneClass = {
+    blue: "stat-card-blue",
+    green: "stat-card-green",
+    gold: "stat-card-gold",
+    violet: "stat-card-violet",
+  }[tone];
+
   return (
-    <article className={cn("stat-card", `stat-card-${tone}`)}>
+    <article className={cn("stat-card", toneClass)}>
       <Icon className="size-10 shrink-0 text-stat-icon" strokeWidth={2.2} aria-hidden="true" />
       <div className="min-w-0">
         <h3 className="text-[13px] font-bold leading-4 text-foreground">
