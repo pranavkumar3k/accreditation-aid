@@ -390,14 +390,14 @@ export function SmartSfrDashboard() {
           </section>
 
           <section className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,1fr)]">
-            <article className="rounded-md border border-danger-border bg-danger-soft p-3">
+            <article className="min-w-0 rounded-md border border-danger-border bg-danger-soft p-3">
               <h2 className="flex items-center gap-2 text-sm font-bold text-danger-foreground">
                 <CircleAlert className="size-4 fill-danger text-danger-icon" aria-hidden="true" />
                 NBA Marks Criteria (Section 4.1)
               </h2>
               <MarksTable />
             </article>
-            <article className="rounded-md border border-success-border bg-success-soft p-4">
+            <article className="min-w-0 rounded-md border border-success-border bg-success-soft p-4">
               <h2 className="flex items-center gap-2 text-base font-bold text-success-foreground">
                 <span className="grid size-6 place-items-center rounded-full bg-success text-success-contrast">
                   <Check className="size-4" strokeWidth={3} aria-hidden="true" />
