@@ -80,7 +80,8 @@
   --color-table-header: var(--table-header);
   --color-chart-grid: var(--chart-grid);
   --color-chart-axis: var(--chart-axis);
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "DM Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -192,6 +193,12 @@
   button,
   input {
     font: inherit;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
   }
 }
 
