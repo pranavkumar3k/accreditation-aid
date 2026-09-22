@@ -21,6 +21,27 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type FileKind = "student" | "faculty";
+type YearlyResult = {
+  academic_year: string;
+  ug2_students: number;
+  ug3_students: number;
+  ug4_students: number;
+  pg1_students: number;
+  pg2_students: number;
+  total_students: number;
+  faculty_count: number;
+  sfr: number;
+};
+
+type AnalysisResult = {
+  yearly_results: {
+    CAY: YearlyResult;
+    CAYm1: YearlyResult;
+    CAYm2: YearlyResult;
+  };
+  average_sfr: number;
+  marks: number;
+};
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -31,12 +52,6 @@ const NAV_ITEMS = [
   { label: "About", icon: Info },
 ];
 
-const YEARLY_DATA = [
-  { year: "CAY", ug2: 60, ug3: 55, ug4: 50, pg1: 20, pg2: 15, students: 200, faculty: 4, sfr: 50 },
-  { year: "CAYm1", ug2: 58, ug3: 52, ug4: 48, pg1: 18, pg2: 14, students: 190, faculty: 4, sfr: 47.5 },
-  { year: "CAYm2", ug2: 55, ug3: 50, ug4: 45, pg1: 16, pg2: 12, students: 178, faculty: 3, sfr: 59.33 },
-];
-
 const MARKS = [
   { range: "≤ 15", marks: 15 },
   { range: "> 15 – 17", marks: 14 },
@@ -45,12 +60,6 @@ const MARKS = [
   { range: "> 21 – 23", marks: 11 },
   { range: "> 23 – 25", marks: 10 },
   { range: "> 25", marks: 0 },
-];
-
-const CHART_POINTS = [
-  { x: 84, y: 108, label: "50.00", year: "CAY" },
-  { x: 205, y: 116, label: "47.50", year: "CAYm1" },
-  { x: 326, y: 84, label: "59.33", year: "CAYm2" },
 ];
 
 function SmartSfrLogo() {
@@ -211,7 +220,27 @@ function StatCard({
   );
 }
 
-function SfrChart() {
+function SfrChart({ yearlyResults }: { yearlyResults: AnalysisResult["yearly_results"] | null }) {
+  const X_POSITIONS = [84, 205, 326];
+  const Y_TOP = 30;
+  const Y_BOTTOM = 140;
+
+  const rows = yearlyResults
+    ? [yearlyResults.CAY, yearlyResults.CAYm1, yearlyResults.CAYm2]
+    : [];
+
+  const sfrValues = rows.map((row) => row.sfr);
+  const minSfr = sfrValues.length ? Math.min(...sfrValues) : 0;
+  const maxSfr = sfrValues.length ? Math.max(...sfrValues) : 1;
+  const range = maxSfr - minSfr || 1;
+
+  const chartPoints = rows.map((row, index) => ({
+    x: X_POSITIONS[index],
+    y: Y_BOTTOM - ((row.sfr - minSfr) / range) * (Y_BOTTOM - Y_TOP),
+    label: row.sfr.toFixed(2),
+    year: row.academic_year,
+  }));
+
   return (
     <div className="mt-2 min-h-[180px] w-full" aria-label="SFR comparison line chart">
       <svg viewBox="0 0 400 190" className="h-full w-full overflow-visible" role="img">
@@ -221,23 +250,33 @@ function SfrChart() {
         ))}
         <line x1="48" x2="48" y1="20" y2="148" className="stroke-chart-axis" />
         <line x1="48" x2="366" y1="148" y2="148" className="stroke-chart-axis" />
-        <polyline
-          points={CHART_POINTS.map((point) => `${point.x},${point.y}`).join(" ")}
-          fill="none"
-          className="stroke-primary"
-          strokeWidth="2.5"
-        />
-        {CHART_POINTS.map((point) => (
-          <g key={point.year}>
-            <circle cx={point.x} cy={point.y} r="4.5" className="fill-primary" />
-            <text x={point.x} y={point.y - 13} textAnchor="middle" className="fill-foreground text-[11px] font-bold">
-              {point.label}
+        {chartPoints.length ? (
+          <>
+            <polyline
+              points={chartPoints.map((point) => `${point.x},${point.y}`).join(" ")}
+              fill="none"
+              className="stroke-primary"
+              strokeWidth="2.5"
+            />
+            {chartPoints.map((point) => (
+              <g key={point.year}>
+                <circle cx={point.x} cy={point.y} r="4.5" className="fill-primary" />
+                <text x={point.x} y={point.y - 13} textAnchor="middle" className="fill-foreground text-[11px] font-bold">
+                  {point.label}
+                </text>
+                <text x={point.x} y="169" textAnchor="middle" className="fill-muted-foreground text-[10px]">
+                  {point.year}
+                </text>
+              </g>
+            ))}
+          </>
+        ) : (
+          X_POSITIONS.map((x, index) => (
+            <text key={x} x={x} y="169" textAnchor="middle" className="fill-muted-foreground text-[10px]">
+              {["CAY", "CAYm1", "CAYm2"][index]}
             </text>
-            <text x={point.x} y="169" textAnchor="middle" className="fill-muted-foreground text-[10px]">
-              {point.year}
-            </text>
-          </g>
-        ))}
+          ))
+        )}
         <text x="20" y="89" textAnchor="middle" transform="rotate(-90 20 89)" className="fill-muted-foreground text-[10px] font-semibold">
           SFR
         </text>
@@ -250,7 +289,11 @@ function SfrChart() {
   );
 }
 
-function YearlyTable() {
+function YearlyTable({ yearlyResults }: { yearlyResults: AnalysisResult["yearly_results"] | null }) {
+  const rows = yearlyResults
+    ? [yearlyResults.CAY, yearlyResults.CAYm1, yearlyResults.CAYm2]
+    : [];
+
   return (
     <div className="mt-3 overflow-x-auto rounded-md border border-border">
       <table className="w-full min-w-[620px] border-collapse text-center text-[11px]">
@@ -268,19 +311,27 @@ function YearlyTable() {
           </tr>
         </thead>
         <tbody>
-          {YEARLY_DATA.map((row) => (
-            <tr key={row.year} className="border-t border-border bg-card">
-              <td className="table-cell text-left font-semibold">{row.year}</td>
-              <td className="table-cell">{row.ug2}</td>
-              <td className="table-cell">{row.ug3}</td>
-              <td className="table-cell">{row.ug4}</td>
-              <td className="table-cell">{row.pg1}</td>
-              <td className="table-cell">{row.pg2}</td>
-              <td className="table-cell">{row.students}</td>
-              <td className="table-cell">{row.faculty}</td>
-              <td className="table-cell font-semibold">{row.sfr.toFixed(2)}</td>
+          {rows.length ? (
+            rows.map((row) => (
+              <tr key={row.academic_year} className="border-t border-border bg-card">
+                <td className="table-cell text-left font-semibold">{row.academic_year}</td>
+                <td className="table-cell">{row.ug2_students}</td>
+                <td className="table-cell">{row.ug3_students}</td>
+                <td className="table-cell">{row.ug4_students}</td>
+                <td className="table-cell">{row.pg1_students}</td>
+                <td className="table-cell">{row.pg2_students}</td>
+                <td className="table-cell">{row.total_students}</td>
+                <td className="table-cell">{row.faculty_count}</td>
+                <td className="table-cell font-semibold">{row.sfr.toFixed(2)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr className="border-t border-border bg-card">
+              <td className="table-cell py-4 text-muted-foreground" colSpan={9}>
+                Run an analysis to see year-wise results.
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
@@ -309,18 +360,99 @@ function MarksTable() {
 export function SmartSfrDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [files, setFiles] = useState({
-    student: { name: "dummy_student_data.csv", records: 15 },
-    faculty: { name: "dummy_faculty_data.csv", records: 12 },
+    student: {
+      name: "dummy_student_data.csv",
+      records: 15,
+    },
+    faculty: {
+      name: "dummy_faculty_data.csv",
+      records: 12,
+    },
   });
-  const [analysisState, setAnalysisState] = useState<"idle" | "complete">("idle");
 
-  const onFileChange = (kind: FileKind, event: ChangeEvent<HTMLInputElement>) => {
+  const [selectedFiles, setSelectedFiles] = useState<{
+    student: File | null;
+    faculty: File | null;
+  }>({
+    student: null,
+    faculty: null,
+  });
+
+  const [analysisState, setAnalysisState] = useState<"idle" | "loading" | "complete">("idle");
+
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+
+  const [error, setError] = useState<string | null>(null);
+
+  const onFileChange = (
+    kind: FileKind,
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    setFiles((current) => ({ ...current, [kind]: { ...current[kind], name: file.name } }));
-    setAnalysisState("idle");
-  };
 
+    if (!file) return;
+
+    setSelectedFiles((current) => ({
+      ...current,
+      [kind]: file,
+    }));
+
+    setFiles((current) => ({
+      ...current,
+      [kind]: {
+        ...current[kind],
+        name: file.name,
+      },
+    }));
+
+    setAnalysisState("idle");
+    setAnalysis(null);
+    setError(null);
+  };
+  const runAnalysis = async () => {
+    if (!selectedFiles.student || !selectedFiles.faculty) {
+      setError("Please select both student and faculty CSV files.");
+      return;
+    }
+
+    setAnalysisState("loading");
+    setError(null);
+
+    try {
+      const formData = new FormData();
+
+      formData.append("student_file", selectedFiles.student);
+      formData.append("faculty_file", selectedFiles.faculty);
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/analyze",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Analysis failed.");
+      }
+
+      const result: AnalysisResult = await response.json();
+
+      setAnalysis(result);
+      setAnalysisState("complete");
+    } catch (err) {
+      console.error(err);
+
+      setAnalysisState("idle");
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to connect to the SmartSFR backend."
+      );
+    }
+  };
   return (
     <div className="flex min-h-screen bg-workspace font-sans text-foreground">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -348,10 +480,12 @@ export function SmartSfrDashboard() {
             <p className="mt-1 text-sm text-muted-foreground md:text-base">
               Calculate, validate and analyse your Student-Faculty Ratio as per NBA guidelines.
             </p>
-            <div className="mt-3 flex items-start gap-3 rounded-md border border-info-border bg-info-soft px-4 py-2.5 text-xs font-medium text-info-foreground">
-              <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-              <p>Currently using dummy data. Replace the files in the ‘raw’ folder to use your actual college data.</p>
-            </div>
+            {analysis === null ? (
+              <div className="mt-3 flex items-start gap-3 rounded-md border border-info-border bg-info-soft px-4 py-2.5 text-xs font-medium text-info-foreground">
+                <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                <p>Currently using dummy data. Replace the files in the ‘raw’ folder to use your actual college data.</p>
+              </div>
+            ) : null}
           </section>
 
           <section className="panel p-4">
@@ -362,7 +496,8 @@ export function SmartSfrDashboard() {
               <div className="lg:border-l lg:border-border lg:pl-5">
                 <Button
                   className="h-12 w-full px-6 text-sm lg:w-auto"
-                  onClick={() => setAnalysisState("complete")}
+                  onClick={runAnalysis}
+                  disabled={analysisState === "loading"}
                 >
                   {analysisState === "complete" ? <Check /> : <Play className="fill-current" />}
                   {analysisState === "complete" ? "Analysis Complete" : "Run Analysis"}
@@ -370,22 +505,53 @@ export function SmartSfrDashboard() {
               </div>
             </div>
           </section>
+          {error ? (
+            <div className="rounded-md border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger-foreground">
+              {error}
+            </div>
+          ) : null}
 
           <section aria-label="Summary statistics" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard title="Total Students" subtitle="(3 Years)" value="568" note="(CAY + CAYm1 + CAYm2)" icon={Users} tone="blue" />
-            <StatCard title="Eligible Faculty" subtitle="(3 Years)" value="10" note="(Average per year)" icon={UserRound} tone="green" />
-            <StatCard title="Average SFR" subtitle="(3 Years)" value="19.59" icon={Calculator} tone="gold" />
-            <StatCard title="NBA Marks" subtitle="(Section 4.1)" value="12 / 15" icon={Star} tone="violet" />
+            <StatCard
+              title="Total Students"
+              subtitle="(CAY)"
+              value={analysis ? String(analysis.yearly_results.CAY.total_students) : "—"}
+              note="(Current Academic Year)"
+              icon={Users}
+              tone="blue"
+            />
+            <StatCard
+              title="Eligible Faculty"
+              subtitle="(CAY)"
+              value={analysis ? String(analysis.yearly_results.CAY.faculty_count) : "—"}
+              note="(Current Academic Year)"
+              icon={UserRound}
+              tone="green"
+            />
+            <StatCard
+              title="Average SFR"
+              subtitle="(3 Years)"
+              value={analysis ? analysis.average_sfr.toFixed(2) : "—"}
+              icon={Calculator}
+              tone="gold"
+            />
+            <StatCard
+              title="NBA Marks"
+              subtitle="(Section 4.1)"
+              value={analysis ? `${analysis.marks} / 15` : "—"}
+              icon={Star}
+              tone="violet"
+            />
           </section>
 
           <section className="grid gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)]">
             <article className="panel min-w-0 p-4">
               <PanelTitle icon={BarChart3}>Year-wise SFR Calculation</PanelTitle>
-              <YearlyTable />
+              <YearlyTable yearlyResults={analysis?.yearly_results ?? null} />
             </article>
             <article className="panel min-w-0 p-4">
               <PanelTitle icon={BarChart3}>SFR Comparison</PanelTitle>
-              <SfrChart />
+              <SfrChart yearlyResults={analysis?.yearly_results ?? null} />
             </article>
           </section>
 
@@ -405,7 +571,13 @@ export function SmartSfrDashboard() {
                 Result
               </h2>
               <p className="mt-2 pl-8 text-xs leading-5 text-foreground">
-                Based on the current data, the program would get <strong>12 out of 15 marks</strong> for Section 4.1 (Student-Faculty Ratio).
+                {analysis ? (
+                  <>
+                    Based on the current data, the program would get <strong>{analysis.marks} out of 15 marks</strong> for Section 4.1 (Student-Faculty Ratio).
+                  </>
+                ) : (
+                  "Run an analysis to see the NBA marks result for Section 4.1 (Student-Faculty Ratio)."
+                )}
               </p>
             </article>
           </section>
